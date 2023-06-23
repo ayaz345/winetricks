@@ -33,7 +33,7 @@ GITHUB_API = 'https://api.github.com'
 def check_status(res, j):
     if res.status_code >= 400:
         msg = j.get('message', 'UNDEFINED')
-        print('ERROR: %s' % msg)
+        print(f'ERROR: {msg}')
         return 1
     return 0
 
@@ -41,13 +41,11 @@ def check_status(res, j):
 def create_release(owner, repo, tag, token):
     url = urljoin(GITHUB_API, '/'.join(['repos', owner, repo, 'releases']))
     headers = {'Authorization': token}
-    data = {'tag_name': tag, 'name': tag, 'body': 'winetricks - %s' % tag}
+    data = {'tag_name': tag, 'name': tag, 'body': f'winetricks - {tag}'}
     res = requests.post(url, auth=(owner, token), data=json.dumps(data), headers=headers)
 
     j = json.loads(res.text)
-    if check_status(res, j):
-        return 1
-    return 0
+    return 1 if check_status(res, j) else 0
 
 
 def upload_asset(path, owner, repo, tag):
@@ -60,12 +58,7 @@ def upload_asset(path, owner, repo, tag):
     j = json.loads(res.text)
     if check_status(res, j):
         # release must not exist, creating release from tag
-        if create_release(owner, repo, tag, token):
-            return 0
-        else:
-            # Need to start over with uploading now that release is created
-            # Return 1 to indicate we need to run upload_asset again
-            return 1
+        return 0 if create_release(owner, repo, tag, token) else 1
     upload_url = j['upload_url']
     upload_url = upload_url.split('{')[0]
 
@@ -88,7 +81,7 @@ def upload_asset(path, owner, repo, tag):
     j = json.loads(res.text)
     if check_status(res, j):
         return 0
-    print('SUCCESS: %s uploaded' % fname)
+    print(f'SUCCESS: {fname} uploaded')
     return 0
 
 if __name__ == '__main__':
